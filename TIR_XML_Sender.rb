@@ -23,7 +23,7 @@ puts <<"EOF"
 
 EOF
 loop do
-  puts 'Введите значения в формате:' #Тест
+  puts 'Введите значения в формате:'
   print '"№ нужного документа, префикс", например "1,inversion": '
   arr = gets.chomp.split(',').to_a
   arr[1].nil? ? prefix = "" : prefix = arr[1].strip
