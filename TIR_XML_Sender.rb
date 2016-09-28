@@ -24,7 +24,7 @@ puts <<"EOF"
 EOF
 loop do
   puts 'Введите значения в формате:'
-  print '"№ нужного документа, префикс", например "1,inversion": '
+  print '"№ нужного документа, префикс", например "1,inversion": ' #Mteb
   arr = gets.chomp.split(',').to_a
   arr[1].nil? ? prefix = "" : prefix = arr[1].strip
   doc = {1=>"PayDocRu", 2=>"PayDocCur", 3=>"CurrBuy", 4=>"CurrSell", 5=>"CurrConv", 6=>"MandatorySaleBox", 7=>"StatementRequest",8=>"SystemStatementRequest",
