@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/TIR_XML_Sender.iml" filepath="$PROJECT_DIR$/.idea/TIR_XML_Sender.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/TIR-Autotest.iml" filepath="$PROJECT_DIR$/.idea/TIR-Autotest.iml" />
     </modules>
   </component>
 </project>
