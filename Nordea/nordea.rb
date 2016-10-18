@@ -27,7 +27,7 @@ route = {
     'ReviseResponse'      => false}
 
 
-# Очищаем очередь
+# Очищаем очередь 1
 client = Stomp::Client.new('admin', 'admin', 'vm-corint', 61613)
 client.subscribe('/queue/nordea_out'){|msg| puts 'Очередь nordea_out очищена' if msg.body.to_s}
 client.join(1)
