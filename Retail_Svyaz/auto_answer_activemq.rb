@@ -1,7 +1,12 @@
 #coding: utf-8
+#ocra auto_answer_activemq.rb --no-dep-run
+
 require 'stomp'
 require 'rexml/document'
 include REXML
+exit_requested = false
+Kernel.trap( "INT" ) { exit_requested = true } #Выход по нажатию Ctrl+C
+
 
 answer_BS_R_STM_ABS_A = '\\\\vm-corint\TIR\ETALON_XML\TIR21-СвязьБанк_Retail\BS_R_STM\BS_R_STM_ABS_A.xml'
 answer_BS_R_CARDACC_ABS_A = '\\\\vm-corint\TIR\ETALON_XML\TIR21-СвязьБанк_Retail\BS_R_CARDACC\BS_R_CARDACC_ABS_A.xml'
@@ -11,7 +16,8 @@ answer_BS_R_CREDITPAY_ABS_A = '\\\\vm-corint\TIR\ETALON_XML\TIR21-СвязьБа
 answer_DepositClose_ABS_A = '\\\\vm-corint\TIR\ETALON_XML\TIR21-СвязьБанк_Retail\DepositClose\DepositClose_ABS_A.xml'
 
 puts "Запустили автоматический ответ в ТИР от АБС для связки банка Связь Банк Retail"
-loop do
+puts "Для выхода нажмите Ctrl+C\n"
+while !exit_requested
 #Подключаемся к MQ
 begin
 client = Stomp::Client.new('admin', 'admin', 'vm-corint2', 61613)
@@ -44,7 +50,6 @@ if request.length > 0
   end
 end
 client.close
-  sleep 5
 rescue Exception => msg
   puts "Ошибка: \n#{msg}"
 end
