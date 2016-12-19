@@ -10,8 +10,10 @@ answer_BS_R_CCONV_ABS_A = '\\\\vm-corint\TIR\ETALON_XML\TIR21-СвязьБанк
 answer_BS_R_CREDITPAY_ABS_A = '\\\\vm-corint\TIR\ETALON_XML\TIR21-СвязьБанк_Retail\BS_R_CREDITPAY\BS_R_CREDITPAY_ABS_A.xml'
 answer_DepositClose_ABS_A = '\\\\vm-corint\TIR\ETALON_XML\TIR21-СвязьБанк_Retail\DepositClose\DepositClose_ABS_A.xml'
 
+puts "Запустили автоматический ответ в ТИР от АБС для связки банка Связь Банк Retail"
 loop do
 #Подключаемся к MQ
+begin
 client = Stomp::Client.new('admin', 'admin', 'vm-corint2', 61613)
 
 
@@ -35,8 +37,15 @@ if request.length > 0
   end
   answer.elements['//ns1:BSMessage'].attributes['ID'] = request_from_abs.elements['//ns0:BSMessage'].attributes['ID']
   client.publish('/queue/szvABS_out', answer.to_s) #Кидаем запрос в очередь
-  puts "Обработали запрос с ID= #{request_from_abs.elements['//ns0:BSMessage'].attributes['ID']}"
+  if answer.elements['//ns1:BSMessage'].attributes['ID'] == ''
+    puts "[#{Time.now}] Обработали запрос #{request_from_abs.elements['//ns0:BSMessage'].attributes['xmlns:ns0']} из очереди szvABS_in с пустым ID, видимо, не заполнен Correlation ID в запросе"
+  else
+    puts "[#{Time.now}] Обработали запрос #{request_from_abs.elements['//ns0:BSMessage'].attributes['xmlns:ns0']} из очереди szvABS_in с ID = #{request_from_abs.elements['//ns0:BSMessage'].attributes['ID']}"
+  end
 end
 client.close
   sleep 5
+rescue Exception => msg
+  puts "Ошибка: \n#{msg}"
+end
 end
