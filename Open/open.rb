@@ -23,7 +23,7 @@ route = {
     'ConfDocCertificate138I'  => true}
 
 # Очищаем очередь
-client = Stomp::Client.new('admin', 'admin', 'vm-opentir', 61613)
+client = Stomp::Client.new('admin', 'admin', 'vm-corint2', 61613)
 client.subscribe('/queue/tir_vmopen_out'){|msg| puts 'Очередь tir_vmopen_out очищена' if msg.body.to_s}
 client.join(1)
 #client.subscribe('/queue/tir_vmopenVK_out'){|msg| puts 'Очередь tir_vmopenVK_out очищена' if msg.body.to_s}
@@ -44,7 +44,7 @@ if route['PayDocRu']
   file_fact = File.open(response_fact_path, 'w')
 #Подключаемся к MQ
   client = Stomp::Client.new('admin', 'admin', 'vm-corint2', 61613)
-  client.publish('/queue/correqts230_in', request) #Кидаем запрос в очередь
+  client.publish('/queue/tir_in', request) #Кидаем запрос в очередь
   sleep 5
   client.subscribe('/queue/tir_vmopen_out'){|msg| file_fact.write msg.body.to_s} #Считываем ответ в файл
   client.join(1)
@@ -73,7 +73,7 @@ if route['DocIds']
 
 #Подключаемся к MQ
   client = Stomp::Client.new('admin', 'admin', 'vm-corint2', 61613)
-  client.publish('/queue/correqts230_in', request) #Кидаем запрос в очередь
+  client.publish('/queue/tir_in', request) #Кидаем запрос в очередь
   sleep 5
   client.subscribe('/queue/tir_vmopen_out'){|msg| file_fact.write msg.body.to_s} #Считываем ответ в файл
   client.join(1)
@@ -102,7 +102,7 @@ if route['CancelRequest']
 
 #Подключаемся к MQ
   client = Stomp::Client.new('admin', 'admin', 'vm-corint2', 61613)
-  client.publish('/queue/correqts230_in', request)  #Кидаем запрос в очередь
+  client.publish('/queue/tir_in', request)  #Кидаем запрос в очередь
   sleep 5
   client.subscribe('/queue/tir_vmopen_out'){|msg| file_fact.write msg.body.to_s} #Считываем ответ в файл
   client.join(1)
@@ -131,7 +131,7 @@ if route['StatementRequest']
   file_fact = File.open(response_fact_path, 'w')
 #Подключаемся к MQ
   client = Stomp::Client.new('admin', 'admin', 'vm-corint2', 61613)
-  client.publish('/queue/correqts230_in', request)  #Кидаем запрос в очередь
+  client.publish('/queue/tir_in', request)  #Кидаем запрос в очередь
   sleep 5
   client.subscribe('/queue/tir_vmopen_out'){|msg| file_fact.write msg.body.to_s} #Считываем ответ в файл
   client.join(1)
@@ -162,7 +162,7 @@ if route['StatementRequest']
   file_fact = File.open(response_fact_path, 'w')
 #Подключаемся к MQ
   client = Stomp::Client.new('admin', 'admin', 'vm-corint2', 61613)
-  client.publish('/queue/correqts230_in', request)  #Кидаем запрос в очередь
+  client.publish('/queue/tir_in', request)  #Кидаем запрос в очередь
   sleep 5
   client.subscribe('/queue/tir_vmopen_out'){|msg| file_fact.write msg.body.to_s} #Считываем ответ в файл
   client.join(1)
@@ -194,7 +194,7 @@ if route['PayDocCur']
 
 #Подключаемся к MQ
   client = Stomp::Client.new('admin', 'admin', 'vm-corint2', 61613)
-  client.publish('/queue/correqts230_in', request)  #Кидаем запрос в очередь
+  client.publish('/queue/tir_in', request)  #Кидаем запрос в очередь
   sleep 5
   client.subscribe('/queue/tir_vmopen_out'){|msg| file_fact.write msg.body.to_s} #Считываем ответ в файл
   client.join(1)
@@ -223,7 +223,7 @@ if route['CurrBuy']
 
 #Подключаемся к MQ
   client = Stomp::Client.new('admin', 'admin', 'vm-corint2', 61613)
-  client.publish('/queue/correqts230_in', request)  #Кидаем запрос в очередь
+  client.publish('/queue/tir_in', request)  #Кидаем запрос в очередь
   sleep 5
   client.subscribe('/queue/tir_vmopen_out'){|msg| file_fact.write msg.body.to_s} #Считываем ответ в файл
   client.join(1)
@@ -252,7 +252,7 @@ if route['CurrSell']
 
 #Подключаемся к MQ
   client = Stomp::Client.new('admin', 'admin', 'vm-corint2', 61613)
-  client.publish('/queue/correqts230_in', request)  #Кидаем запрос в очередь
+  client.publish('/queue/tir_in', request)  #Кидаем запрос в очередь
   sleep 5
   client.subscribe('/queue/tir_vmopen_out'){|msg| file_fact.write msg.body.to_s} #Считываем ответ в файл
   client.join(1)
@@ -281,7 +281,7 @@ if route['CurrConv']
 
 #Подключаемся к MQ
   client = Stomp::Client.new('admin', 'admin', 'vm-corint2', 61613)
-  client.publish('/queue/correqts230_in', request)  #Кидаем запрос в очередь
+  client.publish('/queue/tir_in', request)  #Кидаем запрос в очередь
   sleep 5
   client.subscribe('/queue/tir_vmopen_out'){|msg| file_fact.write msg.body.to_s} #Считываем ответ в файл
   client.join(1)
@@ -310,7 +310,7 @@ if route['MandatorySaleBox']
 
 #Подключаемся к MQ
   client = Stomp::Client.new('admin', 'admin', 'vm-corint2', 61613)
-  client.publish('/queue/correqts230_in', request)  #Кидаем запрос в очередь
+  client.publish('/queue/tir_in', request)  #Кидаем запрос в очередь
   sleep 5
   client.subscribe('/queue/tir_vmopen_out'){|msg| file_fact.write msg.body.to_s} #Считываем ответ в файл
   client.join(1)
@@ -350,7 +350,7 @@ if route['DealPassCred138I']
 
   #Подключаемся к MQ
   client = Stomp::Client.new('admin', 'admin', 'vm-corint2', 61613)
-  client.publish('/queue/correqts230_in', message)  #Кидаем запрос в очередь
+  client.publish('/queue/tir_in', message)  #Кидаем запрос в очередь
   sleep 5
   client.subscribe('/queue/tir_vmopenVK_out'){|msg| file_fact.write msg.body.to_s} #Считываем ответ в файл
   client.join(1)
@@ -390,7 +390,7 @@ if route['DealPassCon138I']
 
   #Подключаемся к MQ
   client = Stomp::Client.new('admin', 'admin', 'vm-corint2', 61613)
-  client.publish('/queue/correqts230_in', message)  #Кидаем запрос в очередь
+  client.publish('/queue/tir_in', message)  #Кидаем запрос в очередь
   sleep 5
   client.subscribe('/queue/tir_vmopenVK_out'){|msg| file_fact.write msg.body.to_s} #Считываем ответ в файл
   client.join(1)
@@ -430,7 +430,7 @@ if route['CurrDealCertificate138I']
 
   #Подключаемся к MQ
   client = Stomp::Client.new('admin', 'admin', 'vm-corint2', 61613)
-  client.publish('/queue/correqts230_in', message)  #Кидаем запрос в очередь
+  client.publish('/queue/tir_in', message)  #Кидаем запрос в очередь
   sleep 5
   client.subscribe('/queue/tir_vmopenVK_out'){|msg| file_fact.write msg.body.to_s} #Считываем ответ в файл
   client.join(1)
@@ -470,7 +470,7 @@ if route['ConfDocCertificate138I']
 
   #Подключаемся к MQ
   client = Stomp::Client.new('admin', 'admin', 'vm-corint2', 61613)
-  client.publish('/queue/correqts230_in', message)  #Кидаем запрос в очередь
+  client.publish('/queue/tir_in', message)  #Кидаем запрос в очередь
   sleep 5
   client.subscribe('/queue/tir_vmopenVK_out'){|msg| file_fact.write msg.body.to_s} #Считываем ответ в файл
   client.join(1)
