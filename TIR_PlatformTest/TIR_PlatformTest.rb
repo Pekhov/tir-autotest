@@ -1,77 +1,113 @@
 #coding: utf-8
-#ocra auto_answer_activemq.rb --no-dep-run
-
 require 'stomp'
+require 'securerandom'
 require 'rexml/document'
 include REXML
+require 'logger'
+require 'colorize'
+require 'yaml'
 
+log = Logger.new('log.txt')
 component = {
-    'Хранимые процедуры'=> false,
-    'ActiveMq'          => true}
+    "Хранимые процедуры"=> true,
+    "ActiveMq"          => true}
 
-#Переменные путей
-inputqueue = "/queue/tir_in"    #Входящая очередь ТИР
-outputqueue = "/queue/test_out" #Исходящая очередь ТИР
-route_DBAdapter = '\\\\vm-corint\TIR\ETALON_XML\TIR_AutoTest\PayDocRu_request.xml' #Маршрут проверки ХП
-activeMQlistner = '\\\\vm-corint\TIR\ETALON_XML\TIR_AutoTest\BS_R_CCONV_R.xml'
-answer_BS_R_STM_ABS_A = '\\\\vm-corint\TIR\ETALON_XML\TIR_AutoTest\BS_R_CCONV_ABS_A.xml'
+#Данные по стенду
 
-begin
+log << config = YAML::load_file('.\config.conf')
+server =  config['TIR Active MQ host']
+port =    config['TIR Active MQ port']
+inputqueue =   config['TIR Входящая очередь']
+outputqueue= config['TIR Исходящая очередь']
+login =   config['TIR Active MQ login']
+password= config['TIR Active MQ password']
+route_DBAdapter = config['Маршрут проверки Хранимых процедур']
+activeMQlistner = config['Маршрут проверки Слушающего компонента']
+answer_BS_R_STM_ABS_A = config['Маршрут ответа АБС слушающего компонента']
+
+#begin
 # Очищаем очередь
-client = Stomp::Client.new('admin', 'admin', 'vm-opentir', 61613)
-client.subscribe(outputqueue){|msg| puts "Очередь #{outputqueue} очищена" if msg.body.to_s}
+client = Stomp::Client.new(login, password, server, port)
+client.subscribe(outputqueue){|msg| puts = "Очередь #{outputqueue} очищена" if msg.body.to_s}
 client.join(1)
-client.subscribe('/queue/test_activemq_out'){|msg| puts "Очередь '/queue/test_activemq_out' очищена" if msg.body.to_s}
+client.subscribe('/queue/test_activemq_out'){|msg| puts  = "Очередь '/queue/test_activemq_out' очищена" if msg.body.to_s}
 client.join(1)
 client.close
 responseFromTIR = String.new
 requestFromTIR = String.new
 
-################################################################################################################################################
+puts text = "Запустили автотесты маршрутов в #{Time.now}\n"
+log.info(text)
 
-  puts "\nЗапустили автотесты маршрутов в #{Time.now}\n\n"
-  if component['Хранимые процедуры']
+log.info("################################################################################################################################################")
+
+  if component["Хранимые процедуры"]
+    log.info("Проверка компонента Хранимых процедур")
     request = File.open(route_DBAdapter){|file| file.read}
-
-    client = Stomp::Client.new('admin', 'admin', 'vm-opentir', 61613)
+    client = Stomp::Client.new(login, password, server, port)
     client.publish(inputqueue, request)
+    log.info("Отправили сообщение в ТИР:\n")
+    log << request
     sleep 5
     client.subscribe(outputqueue){|msg| responseFromTIR << msg.body.to_s}
     client.join(1)
+    log.info("Приняли ответ от ТИР:\n")
+    log << responseFromTIR + "\n"
     client.close
 
     responseFromTIRtoXML = Document.new(responseFromTIR)
     if responseFromTIRtoXML.elements['//p:Ticket'].attributes['statusStateCode'] == 'ACCEPTED_BY_ABS'
-    puts "Адаптер Active MQ работает\nКомпонент трансформации работает\nКомпонент взаимодействия с БД работает"
-    else puts "Проверка компонента взаимодействия с БД провалилась!"
+    puts text = "Адаптер Active MQ работает\nКомпонент трансформации работает\nКомпонент взаимодействия с БД работает"
+    else puts text =  "Проверка компонента взаимодействия с БД провалилась!"
     end
+    log.info(text)
+    responseFromTIR.clear
+    responseFromTIRtoXML = String.new
   end
-
-    if component['ActiveMq']
+log.info("################################################################################################################################################")
+    if component["ActiveMq"]
+        log.info("Проверка компонента Слушающего компонента Active MQ")
         request = File.open(activeMQlistner){|file| file.read}
 
-        client = Stomp::Client.new('admin', 'admin', 'vm-opentir', 61613)
-        client.publish(inputqueue, request)
+        client = Stomp::Client.new(login, password, server, port)
+        client.publish(inputqueue, request, headers = {'correlation-id'=>SecureRandom.uuid})
+        log.info("Отправили сообщение в ТИР:\n")
+        log << request + "\n"
         sleep 5
         client.subscribe('/queue/test_activemq_out'){|msg| requestFromTIR << msg.body.to_s}
         client.join(1)
+        log.info("Приняли ответ от ТИР:\n")
+        log << requestFromTIR + "\n"
         if request.length > 0
             requestFromTIRtoXML = Document.new(requestFromTIR)
             answer = Document.new(File.open(answer_BS_R_STM_ABS_A){ |file| file.read })
             answer.elements['//ns1:BSMessage'].attributes['ID'] = requestFromTIRtoXML.elements['//ns0:BSMessage'].attributes['ID']
             client.publish('/queue/szvABS_out', answer.to_s) #Кидаем запрос в очередь
+            log.info("Отправили сообщение от АБС в ТИР:\n")
+            log << answer.to_s + "\n"
             if answer.elements['//ns1:BSMessage'].attributes['ID'] == ''
-                puts "[#{Time.now}] Обработали запрос #{requestFromTIRtoXML.elements['//ns0:BSMessage'].attributes['xmlns:ns0']} из очереди szvABS_in с пустым ID, видимо, не заполнен Correlation ID в запросе"
+                puts text = "[#{Time.now}] Обработали запрос #{requestFromTIRtoXML.elements['//ns0:BSMessage'].attributes['xmlns:ns0']} из очереди szvABS_in с пустым ID, видимо, не заполнен Correlation ID в запросе"
             else
-                puts "[#{Time.now}] Обработали запрос #{requestFromTIRtoXML.elements['//ns0:BSMessage'].attributes['xmlns:ns0']} из очереди szvABS_in с ID = #{requestFromTIRtoXML.elements['//ns0:BSMessage'].attributes['ID']}"
+                puts text = "[#{Time.now}] Обработали запрос #{requestFromTIRtoXML.elements['//ns0:BSMessage'].attributes['xmlns:ns0']} из очереди szvABS_in с ID = #{requestFromTIRtoXML.elements['//ns0:BSMessage'].attributes['ID']}"
             end
+            log.info(text)
         end
         client.subscribe(outputqueue){|msg| responseFromTIR << msg.body.to_s}
         client.join(1)
-        puts responseFromTIR
+        log.info("Приняли ответ от ТИР:\n")
+        log << responseFromTIR + "\n"
         client.close
+        responseFromTIRtoXML = Document.new(responseFromTIR)
+        if responseFromTIRtoXML.elements['//state'].text == 'ACCEPTED_BY_ABS'
+            puts text = "Слушающий компонент ActiveMQ работает"
+        else puts text = "Проверка компонента слушающего компонента ActiveMQ провалилась!"
+        end
+        log.info(text)
+        responseFromTIR.clear
+        responseFromTIRtoXML = String.new
         end
 
-rescue Exception => msg
-puts "Ошибка: \n#{msg}"
-end
+#rescue Exception => msg
+#puts "Ошибка: \n#{msg}"
+#  log.warn(msg)
+#end
