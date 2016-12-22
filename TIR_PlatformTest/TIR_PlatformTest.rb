@@ -9,8 +9,9 @@ require 'yaml'
 
 log = Logger.new('log.txt')
 component = {
-    "Хранимые процедуры"=> true,
-    "ActiveMq"          => true}
+    "Stored procedure"  => true,
+    "ActiveMq"          => true,
+    "FileAdapter"       => true}
 
 #Данные по стенду
 
@@ -24,8 +25,9 @@ password= config['TIR Active MQ password']
 route_DBAdapter = config['Маршрут проверки Хранимых процедур']
 activeMQlistner = config['Маршрут проверки Слушающего компонента']
 answer_BS_R_STM_ABS_A = config['Маршрут ответа АБС слушающего компонента']
+fileadapter = config['Маршрут проверки Файлового адаптера']
 
-#begin
+begin
 # Очищаем очередь
 client = Stomp::Client.new(login, password, server, port)
 client.subscribe(outputqueue){|msg| puts = "Очередь #{outputqueue} очищена" if msg.body.to_s}
@@ -41,8 +43,8 @@ log.info(text)
 
 log.info("################################################################################################################################################")
 
-  if component["Хранимые процедуры"]
-    log.info("Проверка компонента Хранимых процедур")
+  if component["Stored procedure"]
+    log.info("-= Проверка компонента Хранимых процедур =-")
     request = File.open(route_DBAdapter){|file| file.read}
     client = Stomp::Client.new(login, password, server, port)
     client.publish(inputqueue, request)
@@ -58,7 +60,7 @@ log.info("######################################################################
     responseFromTIRtoXML = Document.new(responseFromTIR)
     if responseFromTIRtoXML.elements['//p:Ticket'].attributes['statusStateCode'] == 'ACCEPTED_BY_ABS'
     puts text = "Адаптер Active MQ работает\nКомпонент трансформации работает\nКомпонент взаимодействия с БД работает"
-    else puts text =  "Проверка компонента взаимодействия с БД провалилась!"
+    else puts text =  "Проверка компонента взаимодействия с БД провалилась!".red
     end
     log.info(text)
     responseFromTIR.clear
@@ -66,7 +68,7 @@ log.info("######################################################################
   end
 log.info("################################################################################################################################################")
     if component["ActiveMq"]
-        log.info("Проверка компонента Слушающего компонента Active MQ")
+        log.info("-= Проверка Слушающего компонента Active MQ =-")
         request = File.open(activeMQlistner){|file| file.read}
 
         client = Stomp::Client.new(login, password, server, port)
@@ -100,14 +102,51 @@ log.info("######################################################################
         responseFromTIRtoXML = Document.new(responseFromTIR)
         if responseFromTIRtoXML.elements['//state'].text == 'ACCEPTED_BY_ABS'
             puts text = "Слушающий компонент ActiveMQ работает"
-        else puts text = "Проверка компонента слушающего компонента ActiveMQ провалилась!"
+        else puts text = "Проверка компонента слушающего компонента ActiveMQ провалилась!".red
         end
         log.info(text)
         responseFromTIR.clear
         responseFromTIRtoXML = String.new
         end
+log.info("################################################################################################################################################")
+if component["FileAdapter"]
+    log.info("-= Проверка Файлового Адаптера и компонента =-")
+    request = File.open(fileadapter){|file| file.read}
+    client = Stomp::Client.new(login, password, server, port)
+    client.publish(inputqueue, request)
+    log.info("Отправили сообщение в ТИР:\n")
+    log << request
+    sleep 2
+    responseOmega = <<EOF
+<?xml version="1.0" encoding="windows-1251" standalone="yes" ?>
+<BODY Type="STATUS_CURRBUY">
+<DOCREF DataType="STRING">5726C254143147F194D6246D28A8EDCB</DOCREF>
+<STATUS DataType="INTEGER">17041</STATUS>
+<VALUEDATE DataType="DATE"></VALUEDATE>
+<NOTEFROMBANK DataType="STRING">note from bank</NOTEFROMBANK>
+<RECEIVEROFFICIALS DataType="STRING">Иванов Иван Алексеевич</RECEIVEROFFICIALS>
+</BODY>
+EOF
+    File.open('\\\\vm-corint\Gates\Omega\in_status_autotest\STATUS_CURRBUY_160420091010.xml', 'w'){ |file| file.write responseOmega }
+    log.info("Подложили файл со статусом в каталог ТИРа:\n")
+    log << responseOmega + "\n"
+    sleep 10
+    client.subscribe(outputqueue){|msg| responseFromTIR << msg.body.to_s}
+    client.join(1)
+    log.info("Приняли ответ от ТИР:\n")
+    log << responseFromTIR + "\n"
+    client.close
 
-#rescue Exception => msg
-#puts "Ошибка: \n#{msg}"
-#  log.warn(msg)
-#end
+    responseFromTIRtoXML = Document.new(responseFromTIR)
+    if responseFromTIRtoXML.elements['//p:Ticket'].attributes['statusStateCode'] == 'PROCESSED'
+        puts text = "Файловый компонент работает\nФайловый адаптер работает"
+    else puts text =  "Проверка файлового компонента провалилась!".red
+    end
+    log.info(text)
+    responseFromTIR.clear
+    responseFromTIRtoXML = String.new
+end
+rescue Exception => msg
+puts "Ошибка: \n#{msg}"
+  log.warn(msg)
+end
