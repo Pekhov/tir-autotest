@@ -6,12 +6,14 @@ include REXML
 require 'logger'
 require 'colorize'
 require 'yaml'
+require 'savon'
 
-log = Logger.new('log.txt')
+log = Logger.new(File.open('log.txt', 'w'))
 component = {
     "Stored procedure"  => true,
     "ActiveMq"          => true,
-    "FileAdapter"       => true}
+    "FileAdapter"       => true,
+    "HTTP_Adapter"      => true}
 
 #Данные по стенду
 
@@ -26,6 +28,8 @@ route_DBAdapter = config['Маршрут проверки Хранимых пр�
 activeMQlistner = config['Маршрут проверки Слушающего компонента']
 answer_BS_R_STM_ABS_A = config['Маршрут ответа АБС слушающего компонента']
 fileadapter = config['Маршрут проверки Файлового адаптера']
+http_adapter = config['Маршрут проверки HTTP адаптера']
+http_adapter_server = config['TIR HTTP Adapter']
 
 begin
 # Очищаем очередь
@@ -52,7 +56,7 @@ log.info("######################################################################
     log << request
     sleep 5
     client.subscribe(outputqueue){|msg| responseFromTIR << msg.body.to_s}
-    client.join(1)
+    client.join(3)
     log.info("Приняли ответ от ТИР:\n")
     log << responseFromTIR + "\n"
     client.close
@@ -77,7 +81,7 @@ log.info("######################################################################
         log << request + "\n"
         sleep 5
         client.subscribe('/queue/test_activemq_out'){|msg| requestFromTIR << msg.body.to_s}
-        client.join(1)
+        client.join(3)
         log.info("Приняли ответ от ТИР:\n")
         log << requestFromTIR + "\n"
         if request.length > 0
@@ -95,7 +99,7 @@ log.info("######################################################################
             log.info(text)
         end
         client.subscribe(outputqueue){|msg| responseFromTIR << msg.body.to_s}
-        client.join(1)
+        client.join(3)
         log.info("Приняли ответ от ТИР:\n")
         log << responseFromTIR + "\n"
         client.close
@@ -132,7 +136,7 @@ EOF
     log << responseOmega + "\n"
     sleep 10
     client.subscribe(outputqueue){|msg| responseFromTIR << msg.body.to_s}
-    client.join(1)
+    client.join(3)
     log.info("Приняли ответ от ТИР:\n")
     log << responseFromTIR + "\n"
     client.close
@@ -146,7 +150,36 @@ EOF
     responseFromTIR.clear
     responseFromTIRtoXML = String.new
 end
+
+log.info("################################################################################################################################################")
+if component["HTTP_Adapter"]
+  log.info("-= Проверка HTTP Адаптера =-")
+  request = File.open(http_adapter){|file| file.read}
+  #Подключаемся к Веб сервису ТИР
+  soap_client = Savon.client do
+    endpoint http_adapter_server
+    namespace 'http://WSCFT_Dispatcher.ws.nordea.ru'
+  end
+  soap_client.call(:do_cft_dispatcher, xml: request) #Кидаем запрос в ТИР
+  log.info("Отправили soap запрос в HTTP адаптер ТИР:\n")
+  log << request + "\n"
+  sleep 5
+  client = Stomp::Client.new(login, password, server, port)
+  client.subscribe(outputqueue){|msg| responseFromTIR << msg.body.to_s}
+  client.join(3)
+  log.info("Приняли ответ от ТИР:\n")
+  log << responseFromTIR + "\n"
+  client.close
+  responseFromTIRtoXML = Document.new(responseFromTIR)
+  if responseFromTIRtoXML.elements['//ShortName'].text == 'ООО "ЛАНТЕР"'
+    puts text = "HTTP адаптер работает"
+  else puts text = "HTTP адаптер не работает!".red
+  end
+  log.info(text)
+  responseFromTIR.clear
+  responseFromTIRtoXML = String.new
+end
 rescue Exception => msg
 puts "Ошибка: \n#{msg}"
-  log.warn(msg)
+log.warn(msg)
 end
