@@ -13,7 +13,9 @@ component = {
     "Stored procedure"  => true,
     "ActiveMq"          => true,
     "FileAdapter"       => true,
-    "HTTP_Adapter"      => true}
+    "HTTP_Adapter"      => true,
+    "DLL"               => true,
+    "Base64"            => true}
 
 #Данные по стенду
 
@@ -30,6 +32,8 @@ answer_BS_R_STM_ABS_A = config['Маршрут ответа АБС слушаю�
 fileadapter = config['Маршрут проверки Файлового адаптера']
 http_adapter = config['Маршрут проверки HTTP адаптера']
 http_adapter_server = config['TIR HTTP Adapter']
+dll_request = config['Маршрут проверки DLL']
+cert_request = config['Маршрут проверки Base64']
 
 begin
 # Очищаем очередь
@@ -48,7 +52,7 @@ log.info(text)
 log.info("################################################################################################################################################")
 
   if component["Stored procedure"]
-    log.info("-= Проверка компонента Хранимых процедур =-")
+    log.info("-= Проверка компонента Хранимых процедур. Маршрут [AutoTest] DBAdapter =-")
     request = File.open(route_DBAdapter){|file| file.read}
     client = Stomp::Client.new(login, password, server, port)
     client.publish(inputqueue, request)
@@ -72,7 +76,7 @@ log.info("######################################################################
   end
 log.info("################################################################################################################################################")
     if component["ActiveMq"]
-        log.info("-= Проверка Слушающего компонента Active MQ =-")
+        log.info("-= Проверка Слушающего компонента Active MQ. Маршрут [AutoTest] ActiveMQListner =-")
         request = File.open(activeMQlistner){|file| file.read}
 
         client = Stomp::Client.new(login, password, server, port)
@@ -114,7 +118,7 @@ log.info("######################################################################
         end
 log.info("################################################################################################################################################")
 if component["FileAdapter"]
-    log.info("-= Проверка Файлового Адаптера и компонента =-")
+    log.info("-= Проверка Файлового Адаптера и компонента. Маршрут [AutoTest] FileAdapter =-")
     request = File.open(fileadapter){|file| file.read}
     client = Stomp::Client.new(login, password, server, port)
     client.publish(inputqueue, request)
@@ -153,7 +157,7 @@ end
 
 log.info("################################################################################################################################################")
 if component["HTTP_Adapter"]
-  log.info("-= Проверка HTTP Адаптера =-")
+  log.info("-= Проверка HTTP Адаптера. Маршрут [AutoTest] HTTPAdaper =-")
   request = File.open(http_adapter){|file| file.read}
   #Подключаемся к Веб сервису ТИР
   soap_client = Savon.client do
@@ -174,6 +178,57 @@ if component["HTTP_Adapter"]
   if responseFromTIRtoXML.elements['//ShortName'].text == 'ООО "ЛАНТЕР"'
     puts text = "HTTP адаптер работает"
   else puts text = "HTTP адаптер не работает!".red
+  end
+  log.info(text)
+  responseFromTIR.clear
+  responseFromTIRtoXML = String.new
+end
+
+log.info("################################################################################################################################################")
+if component["DLL"]
+  log.info("-= Проверка компонента DLL. Маршрут [AutoTest] DLL =-")
+  request = File.open(dll_request){|file| file.read}
+  client = Stomp::Client.new(login, password, server, port)
+  client.publish(inputqueue, request)
+  log.info("Отправили сообщение в ТИР:\n")
+  log << request
+  sleep 5
+  client.subscribe(outputqueue){|msg| responseFromTIR << msg.body.to_s}
+  client.join(3)
+  log.info("Приняли ответ от ТИР:\n")
+  log << responseFromTIR + "\n"
+  client.close
+
+  responseFromTIRtoXML = Document.new(responseFromTIR)
+  if responseFromTIRtoXML.elements['//p:TransInfo'].attributes['payeeINN'] == '111234567890'
+    puts text = "DLL компонент работает"
+  else puts text =  "Проверка компонента DLL провалилась!".red
+  end
+  log.info(text)
+  responseFromTIR.clear
+  responseFromTIRtoXML = String.new
+end
+
+log.info("################################################################################################################################################")
+if component["Base64"]
+  log.info("-= Проверка компонента Base 64 и WebService. [AutoTest] CertGenRequest =-")
+  request = File.open(cert_request){|file| file.read}
+  client = Stomp::Client.new(login, password, server, port)
+  client.publish(inputqueue, request)
+  log.info("Отправили сообщение в ТИР:\n")
+  log << request
+  sleep 5
+  client.subscribe(outputqueue){|msg| responseFromTIR << msg.body.to_s}
+  client.join(3)
+  log.info("Приняли ответ от ТИР:\n")
+  log << responseFromTIR + "\n"
+  client.close
+
+  responseFromTIRtoXML = Document.new(responseFromTIR)
+  #if responseFromTIRtoXML.elements['//cqa:data'].text.include?('LS0tLS')
+  if responseFromTIRtoXML.elements['//cqa:data']
+    puts text = "Base64 компонент работает! \nКомпонент WebService работает"
+  else puts text =  "Проверка компонента Base64 и WebService провалилась!".red
   end
   log.info(text)
   responseFromTIR.clear
