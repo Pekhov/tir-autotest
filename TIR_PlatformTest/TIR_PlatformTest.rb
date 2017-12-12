@@ -10,11 +10,11 @@ require 'savon'
 
 log = Logger.new(File.open('log.txt', 'w'))
 component = {
-    "Stored procedure"  => true,
-    "ActiveMq"          => true,
-    "FileAdapter"       => true,
+    "Stored procedure"  => false,
+    "ActiveMq"          => false,
+    "FileAdapter"       => false,
     "HTTP_Adapter"      => true,
-    "DLL"               => true,
+    "DLL"               => false,
     "Base64"            => true}
 
 #Данные по стенду
@@ -34,13 +34,12 @@ http_adapter = config['Маршрут проверки HTTP адаптера']
 http_adapter_server = config['TIR HTTP Adapter']
 dll_request = config['Маршрут проверки DLL']
 cert_request = config['Маршрут проверки Base64']
+in_status_autotest = config['Файл статуса файлового адаптера']
 
 begin
 # Очищаем очередь
 client = Stomp::Client.new(login, password, server, port)
 client.subscribe(outputqueue){|msg| puts = "Очередь #{outputqueue} очищена" if msg.body.to_s}
-client.join(1)
-client.subscribe('/queue/test_activemq_out'){|msg| puts  = "Очередь '/queue/test_activemq_out' очищена" if msg.body.to_s}
 client.join(1)
 client.close
 responseFromTIR = String.new
@@ -135,7 +134,7 @@ if component["FileAdapter"]
 <RECEIVEROFFICIALS DataType="STRING">Иванов Иван Алексеевич</RECEIVEROFFICIALS>
 </BODY>
 EOF
-    File.open('\\\\vm-corint\Gates\Omega\in_status_autotest\STATUS_CURRBUY_160420091010.xml', 'w'){ |file| file.write responseOmega }
+    File.open(in_status_autotest, 'w'){ |file| file.write responseOmega }
     log.info("Подложили файл со статусом в каталог ТИРа:\n")
     log << responseOmega + "\n"
     sleep 10
